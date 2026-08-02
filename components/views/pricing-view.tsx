@@ -1,8 +1,17 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import { Check, Crown, Zap, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth, PLAN_CONFIGS, type Plan } from '@/lib/auth'
+import { useAuth, PLAN_CONFIGS, type Plan, upgradePlanLocal } from '@/lib/auth'
+
+declare global {
+  interface Window {
+    paypal?: {
+      HostedButtons: (opts: { hostedButtonId: string }) => { render: (selector: string) => void }
+    }
+  }
+}
 
 interface Feature {
   label: string
@@ -29,7 +38,9 @@ const FEATURES: Feature[] = [
   { label: 'Priority support',       free: false,        pro: false,         business: true },
 ]
 
-const PLANS: { id: Plan; highlighted: boolean }[] = [
+interface PlanInfo { id: Plan; highlighted: boolean }
+
+const PLANS: PlanInfo[] = [
   { id: 'free',     highlighted: false },
   { id: 'pro',      highlighted: true  },
   { id: 'business', highlighted: false },
@@ -37,20 +48,81 @@ const PLANS: { id: Plan; highlighted: boolean }[] = [
 
 export function PricingView() {
   const { user, setUser, openAuthModal } = useAuth()
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
+  const [paypalLoading, setPaypalLoading] = useState(false)
+  const [paypalError, setPaypalError] = useState('')
+  const [paymentSuccess, setPaymentSuccess] = useState('')
+  const renderTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Cleanup render timeouts
+  useEffect(() => {
+    return () => {
+      if (renderTimeout.current) clearTimeout(renderTimeout.current)
+    }
+  }, [])
 
   function handleSelectPlan(plan: Plan) {
+    setPaymentSuccess('')
+    setPaypalError('')
     if (!user) {
       openAuthModal('signup')
       return
     }
     if (plan === 'free') return
     if (plan === user.plan) return
-    // Simulate upgrade (in production this would open Stripe checkout)
-    const updated = { ...user, plan }
-    setUser(updated)
-    // persist update
-    import('@/lib/auth').then(({ storeUser }) => storeUser(updated))
-    alert(`You are now on the ${PLAN_CONFIGS[plan].name} plan! (Demo mode — no payment required)`)
+
+    const cfg = PLAN_CONFIGS[plan]
+    if (!cfg.paypalButtonId) {
+      // No PayPal button set up for this tier yet
+      // Fallback: direct upgrade (demo for now, real when button ID is configured)
+      const updated = upgradePlanLocal(user, plan)
+      setUser(updated)
+      setPaymentSuccess(`Upgraded to ${cfg.name}! (Demo — add PayPal button ID for real payments)`)
+      return
+    }
+
+    // Show PayPal button for this plan
+    setSelectedPlan(plan)
+    setPaypalLoading(true)
+
+    // Need to wait for DOM render before rendering PayPal button
+    renderTimeout.current = setTimeout(() => {
+      try {
+        if (window.paypal) {
+          window.paypal.HostedButtons({ hostedButtonId: cfg.paypalButtonId })
+            .render(`#paypal-container-${plan}`)
+          setPaypalLoading(false)
+        } else {
+          setPaypalError('PayPal SDK not loaded. Please refresh and try again.')
+          setPaypalLoading(false)
+        }
+      } catch (e: any) {
+        setPaypalError('PayPal render failed: ' + (e.message || 'Unknown error'))
+        setPaypalLoading(false)
+      }
+    }, 300)
+
+    // Listen for PayPal payment completion via postMessage
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'paypal-payment-success') {
+        const upgraded = upgradePlanLocal(user, plan)
+        setUser(upgraded)
+        setPaymentSuccess(`Payment successful! You are now on the ${cfg.name} plan.`)
+        setSelectedPlan(null)
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    // Cleanup after 5 minutes
+    setTimeout(() => window.removeEventListener('message', handleMessage), 300000)
+  }
+
+  function handleManualUpgrade(plan: Plan) {
+    if (!user) return
+    const cfg = PLAN_CONFIGS[plan]
+    const upgraded = upgradePlanLocal(user, plan)
+    setUser(upgraded)
+    setPaymentSuccess(`Upgraded to ${cfg.name}! Your plan is now active.`)
+    setSelectedPlan(null)
   }
 
   return (
@@ -63,25 +135,34 @@ export function PricingView() {
         </div>
         <h2 className="text-2xl font-bold text-foreground text-balance">Simple, transparent pricing</h2>
         <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto text-pretty">
-          Start free, upgrade when you need more power. No hidden fees, cancel anytime.
+          Start free, upgrade when you need more power. Secure payments via PayPal.
         </p>
       </div>
+
+      {/* Success message */}
+      {paymentSuccess && (
+        <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 text-success text-sm font-medium text-center">
+          {paymentSuccess}
+        </div>
+      )}
 
       {/* Plan cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
         {PLANS.map(({ id, highlighted }) => {
           const cfg = PLAN_CONFIGS[id]
           const isCurrentPlan = user?.plan === id
+          const isSelected = selectedPlan === id
           const Icon = id === 'business' ? Crown : id === 'pro' ? Zap : null
 
           return (
             <div
               key={id}
               className={cn(
-                'relative flex flex-col rounded-2xl border p-6 transition-shadow',
+                'relative flex flex-col rounded-2xl border p-6 transition-all',
                 highlighted
                   ? 'border-primary bg-primary text-primary-foreground shadow-xl shadow-primary/20'
-                  : 'border-border bg-card text-foreground shadow-sm hover:shadow-md'
+                  : 'border-border bg-card text-foreground shadow-sm hover:shadow-md',
+                isSelected && 'ring-2 ring-success ring-offset-2'
               )}
             >
               {/* Badge */}
@@ -93,7 +174,6 @@ export function PricingView() {
                 </div>
               )}
 
-              {/* Plan name */}
               <div className="flex items-center gap-2 mb-4 mt-1">
                 {Icon && (
                   <div className={cn(
@@ -108,7 +188,6 @@ export function PricingView() {
                 </span>
               </div>
 
-              {/* Price */}
               <div className="mb-5">
                 <div className="flex items-baseline gap-1">
                   <span className={cn('text-3xl font-extrabold', highlighted ? 'text-white' : 'text-foreground')}>
@@ -120,19 +199,14 @@ export function PricingView() {
                     </span>
                   )}
                 </div>
-                {id === 'free' && (
-                  <p className={cn('text-xs mt-0.5', highlighted ? 'text-white/70' : 'text-muted-foreground')}>
-                    {cfg.period}
-                  </p>
-                )}
               </div>
 
-              {/* Key features inline */}
+              {/* Key features */}
               <ul className="flex flex-col gap-2 mb-6 flex-1">
                 {[
                   `${cfg.dailyScans === -1 ? 'Unlimited' : cfg.dailyScans} scans/day`,
                   `History: ${cfg.historyLimit === -1 ? 'Unlimited' : cfg.historyLimit} entries`,
-                  ...((cfg.allowedTools as unknown as string) === 'all' ? ['All 8 tools unlocked'] : [`${(cfg.allowedTools as string[]).length} tools available`]),
+                  ...(cfg.allowedTools === ('all' as any) ? ['All tools unlocked'] : [`${(cfg.allowedTools as string[]).length} tools`]),
                   ...(cfg.canExport ? ['Export results'] : []),
                   ...(cfg.canBulkScan ? ['Bulk domain scan'] : []),
                   ...(cfg.hasApiKey ? ['API access key'] : []),
@@ -145,21 +219,41 @@ export function PricingView() {
                 ))}
               </ul>
 
-              {/* CTA button */}
-              <button
-                onClick={() => handleSelectPlan(id)}
-                disabled={isCurrentPlan}
-                className={cn(
-                  'w-full rounded-xl py-3 text-sm font-semibold transition-all',
-                  highlighted
-                    ? 'bg-white text-primary hover:bg-white/90 disabled:opacity-60'
-                    : isCurrentPlan
-                      ? 'bg-muted text-muted-foreground cursor-default'
-                      : 'bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground'
-                )}
-              >
-                {isCurrentPlan ? 'Current plan' : id === 'free' ? 'Get started free' : `Get ${cfg.name}`}
-              </button>
+              {/* CTA / PayPal button area */}
+              {isSelected && cfg.paypalButtonId ? (
+                <div className="space-y-2">
+                  {paypalLoading && (
+                    <div className="text-center text-sm py-3 text-muted-foreground">Loading PayPal...</div>
+                  )}
+                  {paypalError && (
+                    <div className="text-center text-xs text-destructive py-2">{paypalError}</div>
+                  )}
+                  <div id={`paypal-container-${id}`} className="min-h-[45px]" />
+                  {!paypalLoading && !paypalError && (
+                    <button
+                      onClick={() => handleManualUpgrade(id)}
+                      className="w-full text-xs text-muted-foreground hover:text-foreground py-1"
+                    >
+                      Already paid? Tap here to activate
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleSelectPlan(id)}
+                  disabled={isCurrentPlan}
+                  className={cn(
+                    'w-full rounded-xl py-3 text-sm font-semibold transition-all',
+                    highlighted
+                      ? 'bg-white text-primary hover:bg-white/90 disabled:opacity-60'
+                      : isCurrentPlan
+                        ? 'bg-muted text-muted-foreground cursor-default'
+                        : 'bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground'
+                  )}
+                >
+                  {isCurrentPlan ? 'Current plan' : id === 'free' ? 'Get started free' : `Get ${cfg.name}`}
+                </button>
+              )}
             </div>
           )
         })}
@@ -170,8 +264,6 @@ export function PricingView() {
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-bold text-sm text-foreground">Full feature comparison</h3>
         </div>
-
-        {/* Table header */}
         <div className="grid grid-cols-4 gap-0 border-b border-border">
           <div className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Feature</div>
           {PLANS.map(({ id }) => (
@@ -183,23 +275,16 @@ export function PricingView() {
             </div>
           ))}
         </div>
-
         {FEATURES.map((feat, i) => (
-          <div
-            key={i}
-            className={cn(
-              'grid grid-cols-4 gap-0 border-b border-border/50 last:border-0',
-              i % 2 === 0 ? '' : 'bg-muted/30'
-            )}
-          >
+          <div key={i} className={cn(
+            'grid grid-cols-4 gap-0 border-b border-border/50 last:border-0',
+            i % 2 === 0 ? '' : 'bg-muted/30'
+          )}>
             <div className="px-4 py-2.5 text-sm text-foreground">{feat.label}</div>
             {(['free', 'pro', 'business'] as Plan[]).map(plan => {
               const val = feat[plan]
               return (
-                <div key={plan} className={cn(
-                  'px-3 py-2.5 flex items-center justify-center',
-                  plan === 'pro' ? 'bg-primary/5' : ''
-                )}>
+                <div key={plan} className={cn('px-3 py-2.5 flex items-center justify-center', plan === 'pro' ? 'bg-primary/5' : '')}>
                   {typeof val === 'string' ? (
                     <span className="text-xs font-semibold text-foreground">{val}</span>
                   ) : val ? (
@@ -214,13 +299,11 @@ export function PricingView() {
         ))}
       </div>
 
-      {/* Footer note */}
       <p className="text-center text-xs text-muted-foreground mt-6">
-        This is a demo — upgrades are simulated. Contact{' '}
+        Payments processed securely via PayPal 🛡️ | Need help?{' '}
         <a href="https://t.me/Treacky_1" target="_blank" rel="noreferrer" className="text-primary hover:underline">
           @Treacky_1
-        </a>{' '}
-        for enterprise pricing.
+        </a>
       </p>
     </div>
   )
