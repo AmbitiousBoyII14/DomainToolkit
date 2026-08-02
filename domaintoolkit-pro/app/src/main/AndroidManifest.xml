@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.domaintoolkit.pro">
+
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
+
+        <!-- MainActivity (Drawer Navigation) -->
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/app_name"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Home -->
+        <activity
+            android:name=".activities.HomeActivity"
+            android:label="Home"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- All-In-One Scan -->
+        <activity
+            android:name=".activities.AllInOneScanActivity"
+            android:label="All-In-One Scan"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Domain Tools -->
+        <activity
+            android:name=".activities.DomainToolsActivity"
+            android:label="Domain Tools"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- SSL/TLS Tools -->
+        <activity
+            android:name=".activities.SslToolsActivity"
+            android:label="SSL/TLS Tools"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- WebSocket Tools -->
+        <activity
+            android:name=".activities.WebSocketToolsActivity"
+            android:label="WebSocket Tools"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Network Tools -->
+        <activity
+            android:name=".activities.NetworkToolsActivity"
+            android:label="Network Tools"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Hosting Detection -->
+        <activity
+            android:name=".activities.HostingDetectionActivity"
+            android:label="Hosting/CDN Detection"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Security Tools -->
+        <activity
+            android:name=".activities.SecurityToolsActivity"
+            android:label="Security Tools"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- History -->
+        <activity
+            android:name=".activities.HistoryActivity"
+            android:label="History"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Favorites -->
+        <activity
+            android:name=".activities.FavoritesActivity"
+            android:label="Favorites"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Premium -->
+        <activity
+            android:name=".activities.PremiumActivity"
+            android:label="Premium"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Sign In (NEW) -->
+        <activity
+            android:name=".activities.SignInActivity"
+            android:label="Sign In"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Settings -->
+        <activity
+            android:name=".activities.SettingsActivity"
+            android:label="Settings"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- About -->
+        <activity
+            android:name=".activities.AboutActivity"
+            android:label="About"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- PayPal Checkout (NEW) — handles return from browser -->
+        <activity
+            android:name=".activities.PremiumActivity"
+            android:label="Premium"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="domaintoolkit" android:host="payment" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
