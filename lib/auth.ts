@@ -9,9 +9,10 @@ export interface PlanConfig {
   name: string
   price: string
   period: string
-  dailyScans: number        // -1 = unlimited
-  historyLimit: number      // -1 = unlimited
-  allowedTools: string[]    // 'all' or specific tool ids
+  paypalButtonId: string
+  dailyScans: number
+  historyLimit: number
+  allowedTools: string[]
   canExport: boolean
   canBulkScan: boolean
   hasApiKey: boolean
@@ -21,41 +22,23 @@ export interface PlanConfig {
 
 export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   free: {
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    dailyScans: 5,
-    historyLimit: 10,
+    name: 'Free', price: '$0', period: 'forever', paypalButtonId: '',
+    dailyScans: 5, historyLimit: 10,
     allowedTools: ['domain-tools', 'ssl', 'websocket'],
-    canExport: false,
-    canBulkScan: false,
-    hasApiKey: false,
-    hasPrioritySupport: false,
+    canExport: false, canBulkScan: false, hasApiKey: false, hasPrioritySupport: false,
   },
   pro: {
-    name: 'Pro',
-    price: '$4.99',
-    period: 'per month',
-    dailyScans: 100,
-    historyLimit: 500,
+    name: 'Pro', price: '$4.99', period: 'per month', paypalButtonId: '54L2C9R46PZV8',
+    dailyScans: 100, historyLimit: 500,
     allowedTools: 'all' as unknown as string[],
-    canExport: true,
-    canBulkScan: false,
-    hasApiKey: false,
-    hasPrioritySupport: false,
+    canExport: true, canBulkScan: false, hasApiKey: false, hasPrioritySupport: false,
     badge: 'Most Popular',
   },
   business: {
-    name: 'Business',
-    price: '$14.99',
-    period: 'per month',
-    dailyScans: -1,
-    historyLimit: -1,
+    name: 'Business', price: '$14.99', period: 'per month', paypalButtonId: '54L2C9R46PZV8',
+    dailyScans: -1, historyLimit: -1,
     allowedTools: 'all' as unknown as string[],
-    canExport: true,
-    canBulkScan: true,
-    hasApiKey: true,
-    hasPrioritySupport: true,
+    canExport: true, canBulkScan: true, hasApiKey: true, hasPrioritySupport: true,
   },
 }
 
@@ -74,26 +57,21 @@ export interface User {
   plan: Plan
   provider: 'email' | 'google' | 'facebook'
   createdAt: number
+  lastLogin?: number
 }
 
 // ─── Scan usage tracking ──────────────────────────────────────────────────
 const SCAN_KEY = 'dtp_scan_usage'
-
 interface UsageEntry { date: string; count: number }
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10)
-}
+function todayStr() { return new Date().toISOString().slice(0, 10) }
 
 export function getScanCount(): number {
   if (typeof window === 'undefined') return 0
   try {
     const entry: UsageEntry = JSON.parse(localStorage.getItem(SCAN_KEY) ?? '{"date":"","count":0}')
-    if (entry.date !== todayStr()) return 0
-    return entry.count
+    return entry.date !== todayStr() ? 0 : entry.count
   } catch { return 0 }
 }
-
 export function incrementScanCount(): void {
   if (typeof window === 'undefined') return
   const today = todayStr()
@@ -103,14 +81,13 @@ export function incrementScanCount(): void {
     localStorage.setItem(SCAN_KEY, JSON.stringify({ date: today, count }))
   } catch { /* ignore */ }
 }
-
 export function canScan(plan: Plan): boolean {
   const limit = PLAN_CONFIGS[plan].dailyScans
   if (limit === -1) return true
   return getScanCount() < limit
 }
 
-// ─── Auth persistence ─────────────────────────────────────────────────────
+// ─── Auth persistence (localStorage + server sync) ───────────────────────
 const USER_KEY = 'dtp_user'
 const USERS_DB_KEY = 'dtp_users_db'
 
@@ -125,12 +102,14 @@ export function getStoredUser(): User | null {
 export function storeUser(user: User): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(USER_KEY, JSON.stringify(user))
-  // also persist to the "users DB"
+  // Persist to local "DB"
   const db = getAllUsers()
-  const existing = db.findIndex(u => u.id === user.id)
-  if (existing >= 0) db[existing] = user
+  const idx = db.findIndex(u => u.email === user.email)
+  if (idx >= 0) db[idx] = user
   else db.push(user)
   localStorage.setItem(USERS_DB_KEY, JSON.stringify(db))
+  // Sync to server (GitHub-backed)
+  syncUserToServer(user)
 }
 
 export function getAllUsers(): User[] {
@@ -145,13 +124,48 @@ export function removeStoredUser(): void {
   localStorage.removeItem(USER_KEY)
 }
 
-export function updateUserPlan(userId: string, plan: Plan): void {
+// ─── Server sync ──────────────────────────────────────────────────────────
+
+/** Sync user to GitHub-backed server */
+async function syncUserToServer(user: User) {
+  try {
+    await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user }),
+    })
+  } catch {
+    // Silent fail — works offline with localStorage
+  }
+}
+
+/** Upgrade user plan on server after PayPal payment */
+export async function upgradePlanServer(user: User, plan: Plan): Promise<boolean> {
+  try {
+    const res = await fetch('/api/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, plan }),
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    return data.success === true
+  } catch {
+    return false
+  }
+}
+
+/** Upgrade plan locally + server */
+export function upgradePlanLocal(user: User, plan: Plan): User {
+  const updated = { ...user, plan }
+  storeUser(updated)
+  // Also update local DB
   const db = getAllUsers()
-  const updated = db.map(u => u.id === userId ? { ...u, plan } : u)
-  localStorage.setItem(USERS_DB_KEY, JSON.stringify(updated))
-  // if current user, update their session too
-  const current = getStoredUser()
-  if (current?.id === userId) storeUser({ ...current, plan })
+  const idx = db.findIndex(u => u.email === user.email)
+  if (idx >= 0) { db[idx] = updated; localStorage.setItem(USERS_DB_KEY, JSON.stringify(db)) }
+  // Fire server sync
+  upgradePlanServer(updated, plan)
+  return updated
 }
 
 // ─── Auth functions ───────────────────────────────────────────────────────
@@ -163,10 +177,7 @@ function getFirstName(email: string): string {
   return email.split('@')[0].replace(/[._-]/g, ' ').split(' ')[0]
 }
 
-export interface AuthResult {
-  user: User | null
-  error: string | null
-}
+export interface AuthResult { user: User | null; error: string | null }
 
 export function signUpEmail(name: string, email: string, _password: string): AuthResult {
   const db = getAllUsers()
@@ -189,9 +200,9 @@ export function signInEmail(email: string, _password: string): AuthResult {
   const db = getAllUsers()
   const existing = db.find(u => u.email === email.trim().toLowerCase())
   if (!existing) {
-    return { user: null, error: 'No account found with this email. Please sign up first.' }
+    return { user: null, error: 'No account found with this email. Please sign in first.' }
   }
-  storeUser(existing) // refresh session
+  storeUser(existing)
   return { user: existing, error: null }
 }
 
@@ -199,6 +210,8 @@ export function signInOAuth(provider: 'google' | 'facebook', name: string, email
   const db = getAllUsers()
   const existing = db.find(u => u.email === email.trim().toLowerCase())
   if (existing) {
+    // Update provider if changed
+    if (existing.provider !== provider) existing.provider = provider
     storeUser(existing)
     return { user: existing, error: null }
   }
@@ -214,9 +227,7 @@ export function signInOAuth(provider: 'google' | 'facebook', name: string, email
   return { user, error: null }
 }
 
-export function signOut(): void {
-  removeStoredUser()
-}
+export function signOut(): void { removeStoredUser() }
 
 // ─── React context ────────────────────────────────────────────────────────
 export interface AuthContextValue {
@@ -233,6 +244,4 @@ export const AuthContext = createContext<AuthContextValue>({
   openPricing: () => {},
 })
 
-export function useAuth() {
-  return useContext(AuthContext)
-}
+export function useAuth() { return useContext(AuthContext) }
