@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="@color/background_light">
+
+    <ProgressBar
+        android:id="@+id/checkout_progress"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:visibility="gone"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/checkout_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Complete Payment"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/checkout_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="You will be redirected to PayPal to complete your payment."
+        android:textSize="14sp"
+        android:gravity="center"
+        android:textColor="@color/text_secondary_light"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btn_open_paypal"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Open PayPal Checkout"
+        android:textColor="#FFFFFF"
+        android:background="#003087"
+        android:textSize="15sp"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_verify_payment"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="I've Completed Payment"
+        android:textColor="#FFFFFF"
+        android:background="#4CAF50"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btn_cancel_checkout"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="Cancel"
+        android:textColor="@color/text_secondary_light"
+        android:background="@android:color/transparent"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
