@@ -1,51 +1,23 @@
-export interface ScanResult {
-  id: string
-  type: string
-  target: string
-  timestamp: number
-  success: boolean
-  fields: Record<string, string>
-  rows?: Record<string, string>[]
-  isFavorite?: boolean
-}
+export interface ScanResult { id: string; type: string; target: string; timestamp: number; success: boolean; fields: Record<string, string>; rows?: Record<string, string>[]; isFavorite?: boolean }
 
-export type ToolId =
-  | 'home'
-  | 'all-in-one'
-  | 'domain-tools'
-  | 'ssl'
-  | 'websocket'
-  | 'network-tools'
-  | 'hosting'
-  | 'security-headers'
-  | 'geo'
-  | 'email-verifier'
-  | 'history'
-  | 'favorites'
-  | 'pricing'
-  | 'admin'
+export type ToolId = 'home' | 'all-in-one' | 'domain-tools' | 'dns' | 'whois' | 'http' | 'subdomains' | 'ssl' | 'websocket' | 'network-tools' | 'ping' | 'port-scan' | 'http-response-time' | 'hosting' | 'security-headers' | 'geo' | 'email-verifier' | 'bulk-scan' | 'history' | 'favorites' | 'pricing' | 'admin'
 
-export interface NavItem {
-  id: ToolId
-  label: string
-  icon: string
-  description?: string
-  hidden?: boolean
-}
+export interface NavItem { id: ToolId; label: string; icon: string; description?: string; hidden?: boolean; premium?: boolean }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'home',             label: 'Home',             icon: 'home',        description: 'Dashboard' },
-  { id: 'all-in-one',       label: 'All-In-One Scan',  icon: 'scan',        description: 'Complete analysis' },
-  { id: 'domain-tools',     label: 'Domain Tools',     icon: 'globe',       description: 'DNS, WHOIS, HTTP, Subdomains' },
-  { id: 'ssl',              label: 'SSL / TLS',         icon: 'shield',      description: 'Certificate & TLS' },
-  { id: 'websocket',        label: 'WebSocket',         icon: 'zap',         description: 'WS / WSS detect' },
-  { id: 'network-tools',    label: 'Network Tools',     icon: 'network',     description: 'Ping, Port Scanner, Latency' },
-  { id: 'hosting',          label: 'Hosting / CDN',     icon: 'server',      description: 'Provider & CDN detection' },
-  { id: 'security-headers', label: 'Security Headers',  icon: 'lock',        description: 'CSP, HSTS, XSS & more' },
-  { id: 'geo',              label: 'Geo / IP',          icon: 'map-pin',     description: 'IP location & ISP' },
-  { id: 'email-verifier',   label: 'Email Verifier',    icon: 'mail',        description: 'Validate any email' },
-  { id: 'history',          label: 'History',           icon: 'history',     description: 'Past results' },
-  { id: 'favorites',        label: 'Favorites',         icon: 'star',        description: 'Starred scans' },
-  { id: 'pricing',          label: 'Upgrade',           icon: 'crown',       description: 'Plans & pricing' },
-  { id: 'admin',            label: 'Admin',             icon: 'settings',    description: 'Admin panel', hidden: true },
+  { id: 'home', label: 'Dashboard', icon: 'home' },
+  { id: 'all-in-one', label: 'All-In-One Scan', icon: 'scan' },
+  { id: 'domain-tools', label: 'Domain Tools', icon: 'globe' },
+  { id: 'ssl', label: 'SSL / TLS', icon: 'shield' },
+  { id: 'websocket', label: 'WebSocket', icon: 'zap' },
+  { id: 'network-tools', label: 'Network Tools', icon: 'network' },
+  { id: 'hosting', label: 'Hosting / CDN', icon: 'server' },
+  { id: 'security-headers', label: 'Security Headers', icon: 'lock' },
+  { id: 'geo', label: 'Geo / IP Lookup', icon: 'map-pin' },
+  { id: 'email-verifier', label: 'Email Verifier', icon: 'mail' },
+  { id: 'bulk-scan', label: 'Bulk Scan', icon: 'layers', premium: true },
+  { id: 'history', label: 'Scan History', icon: 'history' },
+  { id: 'favorites', label: 'Favorites', icon: 'star' },
+  { id: 'pricing', label: 'Upgrade Plan', icon: 'crown' },
+  { id: 'admin', label: 'Admin Panel', icon: 'settings', hidden: true },
 ]
