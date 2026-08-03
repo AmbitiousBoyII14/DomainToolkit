@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Eye, EyeOff, Lock, Users, Activity, Crown, Trash2, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getAllUsers, updateUserPlan, getStoredUser, PLAN_CONFIGS, type User, type Plan } from '@/lib/auth'
+import { getAllUsers, upgradePlanLocal, getStoredUser, PLAN_CONFIGS, type User, type Plan } from '@/lib/auth'
 import { getHistory } from '@/lib/history'
 
 const ADMIN_PASSWORD = 'Treackyz'
@@ -47,8 +47,11 @@ export function AdminView() {
   }
 
   function handleChangePlan(userId: string, plan: Plan) {
-    updateUserPlan(userId, plan)
-    setUsers(getAllUsers())
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      upgradePlanLocal(user, plan)
+      setUsers(getAllUsers())
+    }
     setEditingPlan(null)
   }
 
