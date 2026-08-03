@@ -13,7 +13,7 @@ export interface PlanConfig {
 export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   free: {
     name: 'Free', price: '$0', period: 'forever', paypalButtonId: '', firstPrice: '$0',
-    dailyScans: 5, historyLimit: 10, allowedTools: ['domain-tools', 'ssl', 'websocket'],
+    dailyScans: 5, historyLimit: 10, allowedTools: ['domain-tools', 'ssl', 'websocket', 'geo', 'email-verifier'],
     canExport: false, canBulkScan: false, hasApiKey: false, hasPrioritySupport: false,
   },
   pro: {

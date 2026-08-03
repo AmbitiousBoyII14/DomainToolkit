@@ -18,6 +18,8 @@ export type ToolId =
   | 'network-tools'
   | 'hosting'
   | 'security-headers'
+  | 'geo'
+  | 'email-verifier'
   | 'history'
   | 'favorites'
   | 'pricing'
@@ -40,6 +42,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'network-tools',    label: 'Network Tools',     icon: 'network',     description: 'Ping, Port Scanner, Latency' },
   { id: 'hosting',          label: 'Hosting / CDN',     icon: 'server',      description: 'Provider & CDN detection' },
   { id: 'security-headers', label: 'Security Headers',  icon: 'lock',        description: 'CSP, HSTS, XSS & more' },
+  { id: 'geo',              label: 'Geo / IP',          icon: 'map-pin',     description: 'IP location & ISP' },
+  { id: 'email-verifier',   label: 'Email Verifier',    icon: 'mail',        description: 'Validate any email' },
   { id: 'history',          label: 'History',           icon: 'history',     description: 'Past results' },
   { id: 'favorites',        label: 'Favorites',         icon: 'star',        description: 'Starred scans' },
   { id: 'pricing',          label: 'Upgrade',           icon: 'crown',       description: 'Plans & pricing' },
