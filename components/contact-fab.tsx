@@ -1,6 +1,7 @@
 'use client'
+
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Mail } from 'lucide-react'
+import { MessageCircle, X, Send, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 function TelegramIcon({ size = 18 }: { size?: number }) {
@@ -11,5 +12,5 @@ export function ContactFAB() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => { function handler(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }; document.addEventListener('mousedown', handler); return () => document.removeEventListener('mousedown', handler) }, [])
-  return (<div ref={ref} className="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2.5">{open && (<div className="flex flex-col items-end gap-2 mb-1"><a href="https://t.me/Treacky_1" target="_blank" rel="noreferrer" className="flex items-center gap-2.5 pl-3.5 pr-4 py-2.5 rounded-2xl bg-[#229ED9] text-white text-sm font-semibold shadow-lg hover:bg-[#1a8fbf] transition-colors" onClick={() => setOpen(false)}><TelegramIcon size={17} />Message on Telegram</a><a href="mailto:?subject=Domain Toolkit Pro&body=Hi, I need help." className="flex items-center gap-2.5 pl-3.5 pr-4 py-2.5 rounded-2xl bg-card border border-border text-foreground text-sm font-semibold shadow-lg hover:bg-secondary transition-colors" onClick={() => setOpen(false)}><Mail size={16} className="text-red-400" />Send via Gmail</a></div>)}<button onClick={() => setOpen(o => !o)} className={cn('w-[52px] h-[52px] rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95', open ? 'bg-foreground text-background' : 'bg-gradient-to-br from-cyan to-accent text-white hover:shadow-[0_0_20px_rgba(0,198,255,0.2)]')}>{open ? <X size={20} /> : <MessageCircle size={22} />}</button></div>)
+  return (<div ref={ref} className="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2.5">{open && (<div className="flex flex-col items-end gap-2 mb-1"><a href="https://t.me/Treacky_1" target="_blank" rel="noreferrer" className="flex items-center gap-2.5 pl-3.5 pr-4 py-2.5 rounded-2xl bg-[#229ED9] text-white text-sm font-semibold shadow-lg hover:bg-[#1a8fbf] transition-colors" onClick={() => setOpen(false)}><TelegramIcon size={17} />Message on Telegram</a><a href="mailto:?subject=Domain Toolkit Pro Support&body=Hi, I need help with Domain Toolkit Pro." className="flex items-center gap-2.5 pl-3.5 pr-4 py-2.5 rounded-2xl bg-white border border-border text-foreground text-sm font-semibold shadow-lg hover:bg-muted transition-colors" onClick={() => setOpen(false)}><Mail size={16} className="text-red-500" />Send via Gmail</a></div>)}<button onClick={() => setOpen(o => !o)} className={cn('w-13 h-13 rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95', open ? 'bg-foreground text-background' : 'bg-primary text-primary-foreground hover:bg-primary/90')} aria-label={open ? 'Close contact menu' : 'Contact support'} style={{ width: 52, height: 52 }}>{open ? <X size={20} /> : <MessageCircle size={22} />}</button></div>)
 }
