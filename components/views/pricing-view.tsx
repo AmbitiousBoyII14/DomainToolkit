@@ -48,7 +48,7 @@ export function PricingView() {
 
     // Open PayPal hosted button in new tab
     const cfg = PLAN_CONFIGS[plan]
-    const paypalUrl = 'https://www.paypal.com/webapps/billing/buttons/subscribe?hosted_button_id=' + cfg.paypalButtonId
+    const paypalUrl = 'https://www.paypal.com/ncp/payment/' + cfg.paypalButtonId
     window.open(paypalUrl, '_blank', 'noopener,noreferrer')
   }
 
